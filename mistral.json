@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "kind": "app",
+  "name": "miumiu-chat",
+  "modules": [
+    {
+      "type": "app",
+      "name": "chat",
+      "path": "chat",
+      "routes": [
+        {
+          "path": "/"
+        }
+      ],
+      "port": 3000,
+      "serve": "server",
+      "runtime": "node",
+      "build": {
+        "context": ".",
+        "dockerfile": "chat/Dockerfile",
+        "target": "runtime"
+      },
+      "deploy": {
+        "startCommand": "node server.js"
+      }
+    }
+  ]
+}

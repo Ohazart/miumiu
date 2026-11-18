@@ -1,0 +1,35 @@
+name: CI chat Mistral
+
+on:
+  pull_request:
+    paths:
+      - "chat/**"
+      - ".github/workflows/chat-ci.yml"
+  push:
+    branches:
+      - vibe/mery-heyman-voute-ca55bc
+    paths:
+      - "chat/**"
+
+jobs:
+  chat:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: chat
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: node --check server.js
+      - name: smoke test
+        run: |
+          MISTRAL_API_KEY=fake PORT=3000 node server.js &
+          sleep 2
+          curl -sf http://localhost:3000/ > /dev/null
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3000/api/chat \
+            -H 'Content-Type: application/json' \
+            -d '{"messages":[{"role":"user","content":"salut"}]}')
+          [ "$code" = "502" ] || { echo "attendu 502, reçu $code"; exit 1; }
