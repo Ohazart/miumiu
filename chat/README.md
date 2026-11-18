@@ -1,7 +1,12 @@
-# Chat Mistral — app web minimale
+# Chat & audio Mistral — app web minimale
 
-Petite application web de chat qui appelle l'**API Mistral** avec le **SDK
-TypeScript officiel** (`@mistralai/mistralai`), modèle **`mistral-small-latest`**.
+Petite application web qui appelle l'**API Mistral** avec le **SDK
+TypeScript officiel** (`@mistralai/mistralai`) :
+
+- **Chat** (`/`) : modèle **`mistral-small-latest`**.
+- **Transcription & traduction audio** (`/audio`) : upload d'un fichier
+  audio (MP3…) transcrit par **`voxtral-mini-transcribe-3`**, puis traduit
+  par `mistral-small-latest` dans la langue de votre choix.
 
 La clé `MISTRAL_API_KEY` reste **côté serveur** : le navigateur ne parle jamais
 directement à l'API Mistral, il passe par la route `POST /api/chat`.

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Transcription &amp; traduction audio — Mistral</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 0 auto; padding: 1rem; }
+    h1 { font-size: 1.25rem; }
+    nav a { margin-right: 1rem; }
+    label { display: block; margin: 0.75rem 0 0.25rem; font-weight: 600; }
+    input, select { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px; }
+    button { margin-top: 1rem; padding: 0.6rem 1.2rem; border: 0; border-radius: 8px; background: #2563eb; color: #fff; cursor: pointer; }
+    button:disabled { background: #93c5fd; cursor: not-allowed; }
+    .row { display: flex; gap: 1rem; }
+    .row > div { flex: 1; }
+    h2 { font-size: 1rem; margin: 1.25rem 0 0.5rem; }
+    pre { background: #f1f5f9; padding: 0.75rem; border-radius: 8px; white-space: pre-wrap; min-height: 2rem; }
+    #status { color: #64748b; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <nav><a href="/">Chat</a><strong>Audio</strong></nav>
+  <h1>Transcription &amp; traduction audio (MP3)</h1>
+
+  <label for="file">Fichier audio (MP3, WAV, M4A…)</label>
+  <input id="file" type="file" accept="audio/*,.mp3" />
+
+  <div class="row">
+    <div>
+      <label for="language">Langue de l'audio (laisser vide pour détection auto)</label>
+      <select id="language">
+        <option value="">Détection automatique</option>
+        <option value="fr">Français</option>
+        <option value="en">Anglais</option>
+        <option value="es">Espagnol</option>
+        <option value="de">Allemand</option>
+        <option value="it">Italien</option>
+        <option value="pt">Portugais</option>
+        <option value="ar">Arabe</option>
+      </select>
+    </div>
+    <div>
+      <label for="translateTo">Traduire vers (optionnel)</label>
+      <select id="translateTo">
+        <option value="">Pas de traduction</option>
+        <option value="français">Français</option>
+        <option value="anglais">Anglais</option>
+        <option value="espagnol">Espagnol</option>
+        <option value="allemand">Allemand</option>
+        <option value="italien">Italien</option>
+      </select>
+    </div>
+  </div>
+
+  <button id="go" type="button">Transcrire</button>
+  <div id="status"></div>
+
+  <h2>Transcript</h2>
+  <pre id="transcript">—</pre>
+  <h2>Traduction</h2>
+  <pre id="translation">—</pre>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const status = $("status");
+    const go = $("go");
+
+    $("go").addEventListener("click", async () => {
+      const file = $("file").files[0];
+      if (!file || go.disabled) return;
+      if (file.size > 25 * 1024 * 1024) {
+        status.textContent = "Fichier trop volumineux (max 25 Mo).";
+        return;
+      }
+      go.disabled = true;
+      status.textContent = "Envoi du fichier…";
+      $("transcript").textContent = "…";
+      $("translation").textContent = "—";
+
+      try {
+        const audioBase64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result.split(",")[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        status.textContent = "Transcription en cours…";
+        const res = await fetch("/api/transcribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            audioBase64,
+            fileName: file.name,
+            language: $("language").value || undefined,
+            translateTo: $("translateTo").value || undefined,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Erreur serveur");
+        $("transcript").textContent = data.text || "(vide)";
+        $("translation").textContent = data.translation || "—";
+        status.textContent = "Terminé.";
+      } catch (err) {
+        status.textContent = "";
+        $("transcript").textContent = "—";
+        status.textContent = "Erreur : " + err.message;
+      } finally {
+        go.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
