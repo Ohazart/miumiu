@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Miumiu — Transcription & Traduction Audio</title>
+  <style>
+    :root {
+      --bg: #0f1222;
+      --card: #1a1f36;
+      --accent: #7c5cff;
+      --accent2: #00d4ff;
+      --text: #e8eaf6;
+      --muted: #9aa3c0;
+      --error: #ff6b6b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, var(--bg), #141a30 60%, #101a2e);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .container { width: 100%; max-width: 640px; }
+    header { text-align: center; margin-bottom: 28px; }
+    h1 {
+      font-size: 2rem;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    header p { color: var(--muted); margin-top: 6px; }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.35);
+    }
+    .dropzone {
+      border: 2px dashed var(--accent);
+      border-radius: 12px;
+      padding: 36px 20px;
+      text-align: center;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .dropzone.dragover { background: rgba(124,92,255,.12); }
+    .dropzone strong { display: block; color: var(--text); margin-bottom: 6px; }
+    input[type=file] { display: none; }
+    .row { display: flex; gap: 12px; margin-top: 18px; flex-wrap: wrap; align-items: center; }
+    select, button {
+      padding: 11px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: #232a4a;
+      color: var(--text);
+      font-size: .95rem;
+    }
+    button {
+      flex: 1;
+      min-width: 180px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    button:disabled { opacity: .55; cursor: wait; }
+    .status { margin-top: 16px; color: var(--muted); font-size: .9rem; }
+    .error { color: var(--error); }
+    .result { margin-top: 20px; }
+    .result h3 {
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--accent2);
+      margin-bottom: 8px;
+    }
+    .result .block {
+      background: #11162c;
+      border-radius: 10px;
+      padding: 14px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      margin-bottom: 18px;
+    }
+    .meta { color: var(--muted); font-size: .85rem; margin-top: 4px; }
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid var(--muted); border-top-color: var(--accent2);
+      border-radius: 50%; animation: spin .8s linear infinite;
+      vertical-align: -2px; margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎧 Miumiu Audio Translator</h1>
+      <p>Transcrivez vos fichiers audio et traduisez-les dans la langue de votre choix.</p>
+    </header>
+
+    <div class="card">
+      <div class="dropzone" id="dropzone">
+        <strong>Glissez-déposez votre fichier ici</strong>
+        ou cliquez pour parcourir (MP3, WAV, M4A, OGG, FLAC — max 100 Mo)
+      </div>
+      <input type="file" id="fileInput" accept=".mp3,.wav,.m4a,.ogg,.flac,.webm,audio/*">
+
+      <div class="row">
+        <select id="langSelect">
+          {% for code, name in languages.items() %}
+          <option value="{{ code }}" {% if code == 'fr' %}selected{% endif %}>{{ name }}</option>
+          {% endfor %}
+        </select>
+        <button id="btn" disabled>Traduire l'audio</button>
+      </div>
+
+      <div class="status" id="status"></div>
+
+      <div class="result" id="result" style="display:none">
+        <h3>Transcription</h3>
+        <div class="block" id="transcription"></div>
+        <h3>Traduction</h3>
+        <div class="block" id="translation"></div>
+        <div class="meta" id="meta"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const btn = document.getElementById('btn');
+    const statusEl = document.getElementById('status');
+    const resultEl = document.getElementById('result');
+    let file = null;
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      setFile(e.dataTransfer.files[0]);
+    });
+
+    function setFile(f) {
+      if (!f) return;
+      file = f;
+      dropzone.innerHTML = '<strong>' + f.name + '</strong>(' + (f.size / 1048576).toFixed(1) + ' Mo) — cliquez pour changer';
+      btn.disabled = false;
+      statusEl.textContent = '';
+    }
+
+    btn.addEventListener('click', async () => {
+      if (!file) return;
+      const fd = new FormData();
+      fd.append('audio', file);
+      fd.append('target_lang', document.getElementById('langSelect').value);
+
+      btn.disabled = true;
+      resultEl.style.display = 'none';
+      statusEl.className = 'status';
+      statusEl.innerHTML = '<span class="spinner"></span>Traitement en cours, patientez…';
+
+      try {
+        const res = await fetch('/transcribe', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erreur inconnue');
+
+        document.getElementById('transcription').textContent = data.transcription || '(aucune parole détectée)';
+        document.getElementById('translation').textContent = data.translation || data.translation_error || '';
+        document.getElementById('meta').textContent =
+          'Langue détectée : ' + data.detected_lang +
+          ' (' + Math.round(data.language_probability * 100) + ' %) · Durée : ' +
+          Math.floor(data.duration / 60) + ' min ' + Math.round(data.duration % 60) + ' s';
+        resultEl.style.display = 'block';
+        statusEl.textContent = 'Terminé ✅';
+      } catch (err) {
+        statusEl.className = 'status error';
+        statusEl.textContent = 'Erreur : ' + err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
