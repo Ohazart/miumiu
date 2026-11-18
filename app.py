@@ -2,6 +2,7 @@ import os
 import tempfile
 import uuid
 
+import ctranslate2
 from deep_translator import GoogleTranslator, MyMemoryTranslator
 from flask import Flask, jsonify, render_template, request, session
 from faster_whisper import WhisperModel
@@ -11,15 +12,28 @@ app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024
 app.secret_key = os.environ.get("SECRET_KEY", uuid.uuid4().hex)
 
 MODEL_SIZE = os.environ.get("WHISPER_MODEL", "tiny")
+DEVICE = os.environ.get("WHISPER_DEVICE", "auto")
 _languages_cache = None
 _model = None
 _translators = {}
 
 
+def resolve_device():
+    if DEVICE != "auto":
+        return DEVICE
+    try:
+        return "cuda" if ctranslate2.get_cuda_device_count() > 0 else "cpu"
+    except Exception:
+        return "cpu"
+
+
 def get_model():
     global _model
     if _model is None:
-        _model = WhisperModel(MODEL_SIZE, device="cpu", compute_type="int8")
+        device = resolve_device()
+        compute_type = "int8" if device == "cpu" else "float16"
+        _model = WhisperModel(MODEL_SIZE, device=device, compute_type=compute_type)
+        print(f"Whisper '{MODEL_SIZE}' chargé sur {device} (compute_type={compute_type})")
     return _model
 
 
