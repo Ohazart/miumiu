@@ -7,7 +7,7 @@ from flask import Flask, jsonify, render_template, request, session
 from faster_whisper import WhisperModel
 
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024
 app.secret_key = os.environ.get("SECRET_KEY", uuid.uuid4().hex)
 
 MODEL_SIZE = os.environ.get("WHISPER_MODEL", "tiny")
