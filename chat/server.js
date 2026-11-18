@@ -8,12 +8,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MODEL = "mistral-small-latest";
 const PORT = process.env.PORT || 3000;
 
-if (!process.env.MISTRAL_API_KEY) {
-  console.error("Erreur : la variable d'environnement MISTRAL_API_KEY est absente.");
-  process.exit(1);
-}
-
-const client = new Mistral({ apiKey: process.env.MISTRAL_API_KEY });
+const client = process.env.MISTRAL_API_KEY
+  ? new Mistral({ apiKey: process.env.MISTRAL_API_KEY })
+  : null;
 
 const server = http.createServer(async (req, res) => {
   if (req.method === "GET" && (req.url === "/" || req.url === "/index.html")) {
@@ -49,6 +46,11 @@ const server = http.createServer(async (req, res) => {
       }
 
       try {
+        if (!client) {
+          res.writeHead(503, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "MISTRAL_API_KEY n'est pas configurée sur le serveur." }));
+          return;
+        }
         const response = await client.chat.complete({
           model: MODEL,
           messages,

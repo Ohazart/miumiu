@@ -35,3 +35,17 @@ Puis ouvrez [http://localhost:3000](http://localhost:3000).
   l'interface et expose `POST /api/chat`, qui appelle `mistral-small-latest`.
 - `public/index.html` — interface de chat (HTML/CSS/JS, sans build).
 - `.env.example` — exemple de variable d'environnement.
+
+## Déploiement Mistral Apps (accessible en continu)
+
+L'app est définie comme une Mistral App (`mistral.json` à la racine du dépôt,
+module `chat`, image `chat/Dockerfile`). Pour la déployer :
+
+```bash
+mistral login            # ou : mistral login --api-key
+mistral deploy            # construit le commit poussé et déploie en production
+```
+
+Une fois l'app créée, définissez `MISTRAL_API_KEY` dans l'onglet **Secrets**
+de l'app dans Studio (module `chat`) : la CLI n'upload jamais le `.env` local.
+L'app est alors servie en continu sur son URL publique.
