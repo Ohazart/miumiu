@@ -1,3 +1,4 @@
+          <<<<<<< vibe/mp3-translation-app-549c5c
 # Miumiu — Audio Translator 🎧
 
 Application web locale qui **transcrit** un fichier audio (MP3, WAV, M4A, OGG, FLAC, WebM) grâce à Whisper, puis **traduit** le texte dans la langue de votre choix.
