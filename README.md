@@ -8,7 +8,7 @@ Application web locale qui **transcrit** un fichier audio (MP3, WAV, M4A, OGG, F
 - Détection automatique de la langue source
 - Traduction dans 12 langues cibles (français, anglais, espagnol, allemand, etc.) avec repli Google Translate → MyMemory
 - Interface web en français : glisser-déposer, file d'attente visuelle, résultats transcription + traduction
-- Limites : 100 Mo par fichier, format MP3/WAV/M4A/OGG/FLAC/WebM
+- Limites : 200 Mo par fichier, format MP3/WAV/M4A/OGG/FLAC/WebM
 
 ## Installation
 
@@ -42,4 +42,5 @@ WHISPER_MODEL=base python app.py
 ## Notes
 
 - La traduction nécessite un accès internet ; si le service est indisponible, la transcription seule est retournée.
+- Pour dépasser 200 Mo, modifiez `MAX_CONTENT_LENGTH` dans `app.py`.
 - Le premier lancement télécharge le modèle Whisper (~75 Mo pour `tiny`).
